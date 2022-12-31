@@ -1,50 +1,47 @@
+const Controllers = require("./controllers");
+
 class Socket {
   constructor(socketIo) {
     this.socketIo = socketIo;
-    this.activeUsers = new Set();
+    this.state = {
+      activeUsers: new Set(),
+      userTrackers: new Map(),
+    };
   }
-  init() {
+
+  init = () => {
     this.socketIo.of("/chat").on("connection", (socket) => {
-      const id = socket.handshake.query.id;
+      const socketId = socket.handshake.query.id;
+      const controller = new Controllers(socket);
 
-      socket.join(id);
+      try {
+        socket.join(socketId);
+        this.state.activeUsers.add(socketId);
 
-      socket.on("join", (data, cb) => {
-        if (typeof cb === "function") cb({ status: "ok" });
-        this.activeUsers.add(id);
-      });
+        socket.on("join", (...args) => {
+          controller.onJoin(...args, this.state, socketId);
+        });
 
-      // socket.on("notification", (data, cb) => {
-      //   if (typeof cb === "function") cb({ status: "ok" });
-      //   socket.to(data.receiver).emit("notification", data);
-      // });
+        socket.on("message", (...args) => {
+          controller.onMessage(...args, this.state, socketId);
+        });
 
-      socket.on("message", (data, cb) => {
-        if (!data.receiver) return;
+        socket.on("user_status", (...args) => {
+          controller.userStatus(...args, this.state, socketId);
+        });
 
-        if (this.activeUsers.has(data.receiver)) {
-          socket.to(data.receiver).emit("message", data);
-          if (typeof cb === "function")
-            cb({ status: "ok", response: { sent: true } });
-        }
-        cb({ status: "ok", response: { sent: false } });
-      });
+        socket.on("remove_tracker", (...args) => {
+          controller.onRemoveTracker(...args, this.state, socketId);
+        });
 
-      socket.on("check_online", (data, cb) => {
-        const online = this.activeUsers.has(data.id);
-        if (typeof cb === "function")
-          cb({ status: "ok", response: { online } });
-      });
-
-      socket.on("disconnect", () => {
-        this.activeUsers.delete(id);
-      });
+        socket.on("disconnect", () => {
+          controller.onDisconnect(this.state, socketId);
+        });
+      } catch (error) {
+        console.log("chat space error: ", error);
+      }
     });
-
-    // this.socketIo.of("/notification").on("disconnect", (socket) => {
-    //   console.log('this.socketIo.id: ', socket.id)
-    // });
-  }
+  };
 }
 
 module.exports = Socket;
