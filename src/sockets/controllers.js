@@ -1,4 +1,5 @@
 const Utils = require("../utils/utils");
+const UserUpdater = require("../updaters/userUpdater");
 
 class Controllers {
   constructor(socket) {
@@ -6,11 +7,11 @@ class Controllers {
   }
 
   onJoin = async (data, cb, state, socketId) => {
-    const { activeUsers, userTrackers } = state;
+    const { activeUsers, userTrackings } = state;
     try {
       if (Utils.isFunc(cb)) cb({ status: "ok" });
-      if (userTrackers.has(socketId)) {
-        const trackers = userTrackers.get(socketId);
+      if (userTrackings.has(socketId)) {
+        const trackers = userTrackings.get(socketId);
         for (const tracker of Array.from(trackers)) {
           if (activeUsers.has(tracker)) {
             this.socket.to(tracker).emit("user_status", { online: socketId });
@@ -37,42 +38,55 @@ class Controllers {
   };
 
   userStatus = async (data, cb, state, socketId) => {
-    const { userTrackers, activeUsers } = state;
+    const { userTrackings, activeUsers, trackers } = state;
     const online = activeUsers.has(data.id);
     try {
       if (Utils.isFunc(cb)) cb({ status: "ok", response: { online } });
-      if (userTrackers.has(data.id)) {
-        userTrackers.set(
-          data.id,
-          new Set([...userTrackers.get(data.id), socketId])
-        );
+      if (userTrackings.has(data.id)) {
+        const trackingSet = userTrackings.get(data.id);
+        trackingSet.add(socketId);
+        userTrackings.set(data.id, trackingSet);
       } else {
-        userTrackers.set(data.id, new Set([socketId]));
+        userTrackings.set(data.id, new Set([socketId]));
       }
-      console.log("userTrackers: ", userTrackers);
+      if (trackers.has(socketId)) {
+        const trackingSet = trackers.get(socketId);
+        trackingSet.add(data.id);
+        trackers.set(socketId, trackingSet);
+      } else {
+        trackers.set(socketId, new Set([data.id]));
+      }
     } catch (error) {
       console.log("userStatus function: ", error);
     }
   };
 
   onRemoveTracker = async (data, cb, state, socketId) => {
-    const { userTrackers } = state;
+    const { userTrackings, trackers } = state;
     try {
-      userTrackers.set(
-        data.id,
-        new Set(Utils.deleteInSet(userTrackers.get(data.id), socketId))
-      );
-      if (Utils.isFunc(cb)) cb({ status: "ok" });
+      if (userTrackings.has(data.id)) {
+        const trackings = userTrackings.get(data.id);
+        trackings.delete(socketId);
+        userTrackings.set(data.id, trackings);
+        if (Utils.isFunc(cb)) cb({ status: "ok" });
+        if (!trackings.size) userTrackings.delete(data.id);
+      }
+      if (trackers.has(socketId)) {
+        const tracks = trackers.get(socketId);
+        tracks.delete(data.id);
+        trackers.set(socketId, tracks);
+        if (!tracks.size) trackers.delete(socketId);
+      }
     } catch (error) {
       console.log("userStatus function: ", error);
     }
   };
 
   onDisconnect = async (state, socketId) => {
-    const { activeUsers, userTrackers } = state;
+    const { activeUsers, userTrackings } = state;
     try {
-      if (userTrackers.has(socketId)) {
-        const trackers = userTrackers.get(socketId);
+      if (userTrackings.has(socketId)) {
+        const trackers = userTrackings.get(socketId);
         for (const tracker of Array.from(trackers)) {
           if (activeUsers.has(tracker)) {
             this.socket
@@ -82,6 +96,7 @@ class Controllers {
         }
       }
       activeUsers.delete(socketId);
+      UserUpdater.updateLastSeen(socketId);
     } catch (error) {
       console.log("onDisconnect function: ", error);
     }

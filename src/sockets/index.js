@@ -5,7 +5,8 @@ class Socket {
     this.socketIo = socketIo;
     this.state = {
       activeUsers: new Set(),
-      userTrackers: new Map(),
+      userTrackings: new Map(),
+      trackers: new Map(),
     };
   }
 
@@ -18,20 +19,20 @@ class Socket {
         socket.join(socketId);
         this.state.activeUsers.add(socketId);
 
-        socket.on("join", (...args) => {
-          controller.onJoin(...args, this.state, socketId);
+        socket.on("join", (data, cb) => {
+          controller.onJoin(data, cb, this.state, socketId);
         });
 
-        socket.on("message", (...args) => {
-          controller.onMessage(...args, this.state, socketId);
+        socket.on("message", (data, cb) => {
+          controller.onMessage(data, cb, this.state, socketId);
         });
 
-        socket.on("user_status", (...args) => {
-          controller.userStatus(...args, this.state, socketId);
+        socket.on("user_status", (data, cb) => {
+          controller.userStatus(data, cb, this.state, socketId);
         });
 
-        socket.on("remove_tracker", (...args) => {
-          controller.onRemoveTracker(...args, this.state, socketId);
+        socket.on("remove_tracker", (data, cb) => {
+          controller.onRemoveTracker(data, cb, this.state, socketId);
         });
 
         socket.on("disconnect", () => {
