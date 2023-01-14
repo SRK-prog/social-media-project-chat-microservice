@@ -100,7 +100,7 @@ class Controllers {
           const trackingIds = [...trackers.get(socketId)];
           for (const id of trackingIds) {
             const trackings = userTrackings.get(id);
-            if (trackings.has(socketId)) {
+            if (trackings && trackings.has(socketId)) {
               trackings.delete(socketId);
               userTrackings.set(id, trackings);
               if (!trackings.size) userTrackings.delete(id);
