@@ -83,20 +83,31 @@ class Controllers {
   };
 
   onDisconnect = async (state, socketId) => {
-    const { activeUsers, userTrackings } = state;
+    const { activeUsers, userTrackings, trackers } = state;
     try {
       if (userTrackings.has(socketId)) {
-        const trackers = userTrackings.get(socketId);
-        for (const tracker of Array.from(trackers)) {
-          if (activeUsers.has(tracker)) {
-            this.socket
-              .to(tracker)
-              .emit("user_disconnect", { offline: socketId });
-          }
-        }
+        const trackerings = userTrackings.get(socketId);
+        this.socket
+          .to(Array.from(trackerings))
+          .emit("user_disconnect", { offline: socketId });
       }
       activeUsers.delete(socketId);
       UserUpdater.updateLastSeen(socketId);
+
+      if (trackers.has(socketId)) {
+        if (!trackers.size) trackers.delete(socketId);
+        else {
+          const trackingIds = [...trackers.get(socketId)];
+          for (const id of trackingIds) {
+            const trackings = userTrackings.get(id);
+            if (trackings && trackings.has(socketId)) {
+              trackings.delete(socketId);
+              userTrackings.set(id, trackings);
+              if (!trackings.size) userTrackings.delete(id);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.log("onDisconnect function: ", error);
     }

@@ -16,6 +16,7 @@ async function listen() {
   try {
     const [socket] = await Promise.all([connnectSocket(server), ConnectDB()]);
     new Socket(socket).init();
+    require("./routes")(app);
     server.listen(PORT);
     console.log("Server start on port: ", PORT);
   } catch (error) {
