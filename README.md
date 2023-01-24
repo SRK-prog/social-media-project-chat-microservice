@@ -7,7 +7,7 @@ This microservice allows for real-time private chat functionality between users 
 * Node.js v14 or higher
 
 ### Installation ###
-* Clone the repository: git clone `https://github.com/SRK-prog/social-media-project-chat-microservice`
+* Clone the repository: git clone https://github.com/SRK-prog/social-media-project-chat-microservice
 
 * Install the dependencies: `npm install`
 
