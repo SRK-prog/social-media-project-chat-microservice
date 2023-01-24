@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
-const ConnectDB = () => {
+const connectDB = () => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Remove the Deprecation Warning
       mongoose.set("strictQuery", false);
-      mongoose.connect(process.env.MONGO_URI).then(() => {
+      await mongoose.connect(process.env.MONGO_URI).then(() => {
         console.log("DB connected");
         resolve();
       });
@@ -14,4 +15,4 @@ const ConnectDB = () => {
   });
 };
 
-module.exports = ConnectDB;
+module.exports = connectDB;
