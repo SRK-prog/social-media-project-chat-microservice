@@ -4,7 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const connnectSocket = require("./src/connections/socketConn");
 const Socket = require("./src/sockets");
-const ConnectDB = require("./src/connections/dbConn");
+const connectDB = require("./src/connections/dbConn");
 
 const app = express();
 app.use(cors());
@@ -14,9 +14,9 @@ const PORT = process.env.PORT || 5005;
 
 async function listen() {
   try {
-    const [socket] = await Promise.all([connnectSocket(server), ConnectDB()]);
-    new Socket(socket).init();
     require("./routes")(app);
+    const [socket] = await Promise.all([connnectSocket(server), connectDB()]);
+    new Socket(socket).init();
     server.listen(PORT);
     console.log("Server start on port: ", PORT);
   } catch (error) {
